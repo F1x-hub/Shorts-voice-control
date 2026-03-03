@@ -1,0 +1,45 @@
+{
+    "manifest_version": 3,
+    "name": "Голосовое управление Shorts",
+    "version": "1.0",
+    "description": "Расширение для управления YouTube Shorts с помощью голосовых команд",
+    "permissions": [
+        "offscreen",
+        "tabs",
+        "storage"
+    ],
+    "host_permissions": [
+        "*://*.youtube.com/*"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "action": {
+        "default_popup": "popup.html",
+        "default_title": "Голосовое управление Shorts"
+    },
+    "options_ui": {
+        "page": "options.html",
+        "open_in_tab": true
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "*://*.youtube.com/*"
+            ],
+            "js": [
+                "content.js"
+            ]
+        }
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "iframe.html"
+            ],
+            "matches": [
+                "*://*.youtube.com/*"
+            ]
+        }
+    ]
+}

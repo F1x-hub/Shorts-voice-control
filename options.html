@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Настройки | Voice to Text (RU)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f9f9f9;
+            color: #333;
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h2 {
+            margin-top: 0;
+            font-size: 22px;
+            text-align: center;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .section {
+            margin-bottom: 30px;
+            background: #fdfdfd;
+            padding: 15px;
+            border: 1px solid #eee;
+            border-radius: 6px;
+        }
+        h3 {
+            font-size: 16px;
+            margin-top: 0;
+            color: #4CAF50;
+            margin-bottom: 15px;
+        }
+        .chip-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        .chip {
+            background-color: #e0f2f1;
+            color: #00796b;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid #b2dfdb;
+        }
+        .chip button {
+            background: none;
+            border: none;
+            color: #00796b;
+            cursor: pointer;
+            padding: 0;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .chip button:hover {
+            color: #d32f2f;
+        }
+        .input-group {
+            display: flex;
+            gap: 8px;
+        }
+        .input-group input {
+            flex-grow: 1;
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .input-group button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .input-group button:hover {
+            background-color: #45a049;
+        }
+        .save-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .save-msg {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 16px;
+            background-color: #dcedc8;
+            color: #33691e;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .save-msg.visible {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <h2>Настройки команд (Voice to Text)</h2>
+    
+    <div class="section">
+        <h3>Ключевые слова — Предыдущее видео</h3>
+        <div class="chip-container" id="prevKeywordsContainer"></div>
+        <div class="input-group">
+            <input type="text" id="prevInput" placeholder="Введите новое слово..." autocomplete="off">
+            <button id="addPrevBtn">Добавить</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>Ключевые слова — Следующее видео</h3>
+        <div class="chip-container" id="nextKeywordsContainer"></div>
+        <div class="input-group">
+            <input type="text" id="nextInput" placeholder="Введите новое слово..." autocomplete="off">
+            <button id="addNextBtn">Добавить</button>
+        </div>
+    </div>
+
+    <div class="save-container">
+        <div id="saveMessage" class="save-msg">Настройки сохранены ✓</div>
+    </div>
+
+    <script src="options.js"></script>
+</body>
+</html>
