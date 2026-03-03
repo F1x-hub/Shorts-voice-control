@@ -2,6 +2,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const startBtn = document.getElementById('start');
     const stopBtn = document.getElementById('stop');
     const statusDiv = document.getElementById('status');
+    const autoSkipToggle = document.getElementById('autoSkipToggle');
+
+    // Предварительно загружаем состояние тогглера
+    if (autoSkipToggle) {
+        chrome.storage.local.get(['autoSkip'], (result) => {
+            autoSkipToggle.checked = result.autoSkip || false;
+        });
+
+        // Сохраняем состояние при переключении
+        autoSkipToggle.addEventListener('change', () => {
+            chrome.storage.local.set({ autoSkip: autoSkipToggle.checked });
+        });
+    }
 
     // Кнопка Старт включена по умолчанию, чтобы дождаться клика пользователя
     startBtn.disabled = false;

@@ -44,3 +44,53 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({status: 'removed'});
     }
 });
+
+// --- Логика авто-пропуска Shorts ---
+let autoSkipEnabled = false;
+
+chrome.storage.local.get(['autoSkip'], (result) => {
+    autoSkipEnabled = result.autoSkip || false;
+});
+
+chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes.autoSkip !== undefined) {
+        autoSkipEnabled = changes.autoSkip.newValue;
+    }
+});
+
+setInterval(() => {
+    if (!autoSkipEnabled) return;
+    
+    // Убедимся, что мы на странице Shorts
+    if (!window.location.pathname.includes('/shorts/')) return;
+    
+    const videos = document.querySelectorAll('video');
+    for (const video of videos) {
+        // Ищем активное видео (которое сейчас проигрывается)
+        if (!video.paused && video.readyState === 4 && video.duration > 0) {
+            
+            // Если до конца осталось меньше 0.5 сек
+            if (video.duration - video.currentTime < 0.5) {
+                if (!video.dataset.autoSkipped) {
+                    video.dataset.autoSkipped = 'true';
+                    console.log('Shorts video ended, auto-skipping...');
+                    
+                    // Ищем кнопку следующего видео
+                    const nextButton = document.querySelector('button[aria-label="Следующее видео"]') || 
+                                       document.querySelector('.yt-spec-button-shape-next[aria-label="Следующее видео"]') ||
+                                       document.querySelector('#navigation-button-down button');
+                    
+                    if (nextButton) {
+                        nextButton.click();
+                    }
+                }
+            } else if (video.currentTime < 1) {
+                // Сбрасываем флаг, когда видео начинается сначала
+                video.dataset.autoSkipped = '';
+            }
+            
+            // Обрабатываем только одно активное видео
+            break;
+        }
+    }
+}, 300);

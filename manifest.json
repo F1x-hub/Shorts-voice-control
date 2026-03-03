@@ -4,7 +4,6 @@
     "version": "1.0",
     "description": "Расширение для управления YouTube Shorts с помощью голосовых команд",
     "permissions": [
-        "offscreen",
         "tabs",
         "storage"
     ],

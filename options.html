@@ -118,6 +118,42 @@
     <h2>Настройки команд (Voice to Text)</h2>
     
     <div class="section">
+        <h3>Язык распознавания речи</h3>
+        <div class="input-group" style="align-items: center;">
+            <label for="langSelect" style="font-size: 14px; margin-right: 8px;">Выберите язык:</label>
+            <select id="langSelect" style="padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; flex-grow: 1;">
+                <option value="ru-RU">Русский (ru-RU)</option>
+                <option value="en-US">Английский (en-US)</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>Окно предпросмотра и чувствительность</h3>
+        <div style="margin-bottom: 15px;">
+            <label for="sensitivitySlider" style="font-size: 14px; font-weight: bold;">Чувствительность промежуточного результата: <span id="sensitivityValue">5</span></label>
+            <div style="display: flex; align-items: center; gap: 10px; margin-top: 8px;">
+                <span style="font-size: 12px; color: #666;">Строго (1)</span>
+                <input type="range" id="sensitivitySlider" min="1" max="10" value="5" style="flex-grow: 1;">
+                <span style="font-size: 12px; color: #666;">Мгновенно (10)</span>
+            </div>
+            <p style="font-size: 12px; color: #777; margin-top: 5px;">
+                * Чем выше значение, тем быстрее появляются промежуточные слова на экране.
+            </p>
+        </div>
+
+        <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: bold; font-size: 14px;">Живой предпросмотр:</span>
+            <button id="testMicBtn" style="padding: 6px 12px; background-color: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">Тест микрофона</button>
+        </div>
+        
+        <div id="previewBox" style="min-height: 80px; width: 100%; border: 1px dashed #ccc; border-radius: 6px; padding: 10px; background: #fafafa; font-size: 16px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: flex-end;">
+            <div id="finalText" style="color: #000; font-weight: 500;"></div>
+            <div id="interimText" style="color: #888; font-style: italic; min-height: 20px;">Нажмите «Тест микрофона» и скажите что-нибудь...</div>
+        </div>
+    </div>
+
+    <div class="section">
         <h3>Ключевые слова — Предыдущее видео</h3>
         <div class="chip-container" id="prevKeywordsContainer"></div>
         <div class="input-group">
