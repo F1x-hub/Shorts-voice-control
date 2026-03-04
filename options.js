@@ -3,8 +3,11 @@ const DEFAULT_NEXT = ["вперёд", "следующее", "дальше", "nex
 
 let prevKeywords = [];
 let nextKeywords = [];
+let altPrevKeywords = [];
+let altNextKeywords = [];
 let currentLang = 'ru-RU';
 let currentSensitivity = 5;
+let showToast = true;
 
 // Local preview variables
 let localRecognition;
@@ -21,6 +24,14 @@ document.addEventListener('DOMContentLoaded', () => {
         addKeyword('nextInput', nextKeywords, renderNext);
     });
 
+    document.getElementById('addAltPrevBtn').addEventListener('click', () => {
+        addKeyword('altPrevInput', altPrevKeywords, renderAltPrev);
+    });
+    
+    document.getElementById('addAltNextBtn').addEventListener('click', () => {
+        addKeyword('altNextInput', altNextKeywords, renderAltNext);
+    });
+
     // Enter key support
     document.getElementById('prevInput').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') addKeyword('prevInput', prevKeywords, renderPrev);
@@ -28,6 +39,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('nextInput').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') addKeyword('nextInput', nextKeywords, renderNext);
+    });
+
+    document.getElementById('altPrevInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') addKeyword('altPrevInput', altPrevKeywords, renderAltPrev);
+    });
+
+    document.getElementById('altNextInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') addKeyword('altNextInput', altNextKeywords, renderAltNext);
     });
 
     // Language select support
@@ -54,12 +73,22 @@ document.addEventListener('DOMContentLoaded', () => {
             startTestMic();
         }
     });
+    // Toast toggle support
+    const toastToggle = document.getElementById('showToastToggle');
+    if (toastToggle) {
+        toastToggle.addEventListener('change', () => {
+            showToast = toastToggle.checked;
+            saveSettings();
+        });
+    }
 });
 
 function loadSettings() {
-    chrome.storage.sync.get(['prevKeywords', 'nextKeywords', 'language', 'sensitivity'], (result) => {
+    chrome.storage.sync.get(['prevKeywords', 'nextKeywords', 'altPrevKeywords', 'altNextKeywords', 'language', 'sensitivity', 'showToast'], (result) => {
         prevKeywords = result.prevKeywords || [...DEFAULT_PREV];
         nextKeywords = result.nextKeywords || [...DEFAULT_NEXT];
+        altPrevKeywords = result.altPrevKeywords || [];
+        altNextKeywords = result.altNextKeywords || [];
         currentLang = result.language || 'ru-RU';
         currentSensitivity = result.sensitivity || 5;
         
@@ -67,8 +96,14 @@ function loadSettings() {
         document.getElementById('sensitivitySlider').value = currentSensitivity;
         document.getElementById('sensitivityValue').textContent = currentSensitivity;
 
+        showToast = result.showToast !== undefined ? result.showToast : true;
+        const toastToggle = document.getElementById('showToastToggle');
+        if (toastToggle) toastToggle.checked = showToast;
+
         renderPrev();
         renderNext();
+        renderAltPrev();
+        renderAltNext();
     });
 }
 
@@ -85,6 +120,22 @@ function renderNext() {
         nextKeywords.splice(index, 1);
         saveSettings();
         renderNext();
+    });
+}
+
+function renderAltPrev() {
+    renderChips('altPrevKeywordsContainer', altPrevKeywords, (index) => {
+        altPrevKeywords.splice(index, 1);
+        saveSettings();
+        renderAltPrev();
+    });
+}
+
+function renderAltNext() {
+    renderChips('altNextKeywordsContainer', altNextKeywords, (index) => {
+        altNextKeywords.splice(index, 1);
+        saveSettings();
+        renderAltNext();
     });
 }
 
@@ -125,8 +176,11 @@ function saveSettings() {
     chrome.storage.sync.set({
         prevKeywords: prevKeywords,
         nextKeywords: nextKeywords,
+        altPrevKeywords: altPrevKeywords,
+        altNextKeywords: altNextKeywords,
         language: currentLang,
-        sensitivity: currentSensitivity
+        sensitivity: currentSensitivity,
+        showToast: showToast
     }, () => {
         showSaveMessage();
     });

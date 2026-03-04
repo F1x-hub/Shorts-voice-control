@@ -82,6 +82,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             startBtn.disabled = false;
             stopBtn.disabled = true;
+        } else if (message.action === 'command_executed') {
+            setStatus('▶ Команда: «' + message.commandName + '»', '#4CAF50');
         } else if (message.action === 'transcript_update') {
             if (message.isFinal) {
                 console.log('%cФинальный: %c' + message.text, 'color: green; font-weight: bold;', 'color: black');

@@ -112,6 +112,24 @@
         .save-msg.visible {
             opacity: 1;
         }
+        /* Toggle switch styles */
+        .toast-toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        #showToastToggle:checked + .toast-toggle-slider {
+            background-color: #4CAF50;
+        }
+        #showToastToggle:checked + .toast-toggle-slider:before {
+            transform: translateX(16px);
+        }
     </style>
 </head>
 <body>
@@ -154,6 +172,20 @@
     </div>
 
     <div class="section">
+        <h3>Отображение на YouTube</h3>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <label style="position: relative; display: inline-block; width: 36px; height: 20px; flex-shrink: 0;">
+                <input type="checkbox" id="showToastToggle" checked style="opacity: 0; width: 0; height: 0;">
+                <span class="toast-toggle-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px;"></span>
+            </label>
+            <label for="showToastToggle" style="font-size: 14px; cursor: pointer; user-select: none;">Показывать команды на YouTube</label>
+        </div>
+        <p style="font-size: 12px; color: #777; margin-top: 8px; margin-bottom: 0;">
+            * При включении на экране YouTube будет появляться уведомление о выполненной команде.
+        </p>
+    </div>
+
+    <div class="section">
         <h3>Ключевые слова — Предыдущее видео</h3>
         <div class="chip-container" id="prevKeywordsContainer"></div>
         <div class="input-group">
@@ -163,11 +195,31 @@
     </div>
 
     <div class="section">
+        <h3>Альтернативные фразы — Предыдущее видео</h3>
+        <p style="font-size: 13px; color: #666; margin-top: -10px; margin-bottom: 10px;">Добавьте варианты, которые API часто распознаёт неправильно.</p>
+        <div class="chip-container" id="altPrevKeywordsContainer"></div>
+        <div class="input-group">
+            <input type="text" id="altPrevInput" placeholder="Введите ошибочную фразу..." autocomplete="off">
+            <button id="addAltPrevBtn">Добавить</button>
+        </div>
+    </div>
+
+    <div class="section">
         <h3>Ключевые слова — Следующее видео</h3>
         <div class="chip-container" id="nextKeywordsContainer"></div>
         <div class="input-group">
             <input type="text" id="nextInput" placeholder="Введите новое слово..." autocomplete="off">
             <button id="addNextBtn">Добавить</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>Альтернативные фразы — Следующее видео</h3>
+        <p style="font-size: 13px; color: #666; margin-top: -10px; margin-bottom: 10px;">Добавьте варианты, которые API часто распознаёт неправильно.</p>
+        <div class="chip-container" id="altNextKeywordsContainer"></div>
+        <div class="input-group">
+            <input type="text" id="altNextInput" placeholder="Введите ошибочную фразу..." autocomplete="off">
+            <button id="addAltNextBtn">Добавить</button>
         </div>
     </div>
 

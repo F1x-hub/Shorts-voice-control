@@ -107,6 +107,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         chrome.runtime.sendMessage({ action: 'stop_recognition' }).catch(() => {});
         chrome.runtime.sendMessage({ action: 'recognition_stopped' }).catch(() => {});
         sendResponse({status: 'stopped'});
+    } else if (message.action === 'show_toast') {
+        chrome.tabs.query({url: "*://*.youtube.com/*"}, (tabs) => {
+            for (let tab of tabs) {
+                chrome.tabs.sendMessage(tab.id, { action: 'show_toast', message: message.message }).catch(() => {});
+            }
+        });
     } else if (message.action === 'voice_command') {
         if (message.command === 'next_video') {
             // Find YouTube tabs and send message to click next

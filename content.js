@@ -42,8 +42,40 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             console.log('Voice-to-Text iframe удален.');
         }
         sendResponse({status: 'removed'});
+    } else if (message.action === 'show_toast') {
+        showToast(message.message);
+        sendResponse({status: 'toast_shown'});
     }
 });
+
+function showToast(text) {
+    let toast = document.getElementById('vtt-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'vtt-toast';
+        toast.style.position = 'fixed';
+        toast.style.bottom = '100px';
+        toast.style.right = '40px';
+        toast.style.backgroundColor = '#4CAF50';
+        toast.style.color = 'white';
+        toast.style.padding = '12px 24px';
+        toast.style.borderRadius = '8px';
+        toast.style.fontSize = '16px';
+        toast.style.fontWeight = 'bold';
+        toast.style.zIndex = '999999';
+        toast.style.boxShadow = '0 4px 6px rgba(0,0,0,0.3)';
+        toast.style.transition = 'opacity 0.3s ease';
+        toast.style.pointerEvents = 'none';
+        document.body.appendChild(toast);
+    }
+    toast.textContent = text;
+    toast.style.opacity = '1';
+    
+    if (toast.hideTimeout) clearTimeout(toast.hideTimeout);
+    toast.hideTimeout = setTimeout(() => {
+        toast.style.opacity = '0';
+    }, 1500);
+}
 
 // --- Логика авто-пропуска Shorts ---
 let autoSkipEnabled = false;
