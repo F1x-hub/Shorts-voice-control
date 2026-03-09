@@ -2,6 +2,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const stopBtn = document.getElementById('stop');
     const statusDiv = document.getElementById('status');
     const autoSkipToggle = document.getElementById('autoSkipToggle');
+    const controlsDiv = document.getElementById('controls');
+    const permissionContainer = document.getElementById('permission-container');
+    const permissionBtn = document.getElementById('permissionBtn');
+    const permissionHint = document.getElementById('permissionHint');
 
     function sendToBackground(message, callback, retryCount = 0) {
         chrome.runtime.sendMessage(message, (response) => {
@@ -55,44 +59,78 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    let microphonePermissionStatus = null;
+
+    async function checkPermission(autoStart = true) {
+        try {
+            if (!microphonePermissionStatus) {
+                microphonePermissionStatus = await navigator.permissions.query({ name: 'microphone' });
+                microphonePermissionStatus.onchange = () => {
+                    handlePermissionState(microphonePermissionStatus.state, autoStart);
+                };
+            }
+            handlePermissionState(microphonePermissionStatus.state, autoStart);
+        } catch (err) {
+            console.error('Ошибка проверки разрешений:', err);
+        }
+    }
+
+    function handlePermissionState(state, autoStart = true) {
+        if (state === 'granted') {
+            if (controlsDiv) controlsDiv.style.display = 'block';
+            if (permissionContainer) permissionContainer.style.display = 'none';
+            if (permissionHint) permissionHint.style.display = 'none';
+            
+            // Start listening automatically if not already
+            if (!isRecording && autoStart) {
+                sendToBackground({ action: 'start_listening' });
+                setStatus('Запуск фонового распознавания...', '#4CAF50');
+                stopBtn.disabled = false;
+            }
+        } else {
+            if (controlsDiv) controlsDiv.style.display = 'none';
+            if (permissionContainer) permissionContainer.style.display = 'block';
+            if (state === 'prompt') {
+                if (permissionHint) permissionHint.style.display = 'none';
+            }
+            setStatus('Ожидание разрешения на микрофон', '#FF9800');
+            setRecordingState(false);
+        }
+    }
+
+    if (permissionBtn) {
+        permissionBtn.addEventListener('click', async () => {
+             const state = microphonePermissionStatus ? microphonePermissionStatus.state : 'prompt';
+             if (state === 'prompt') {
+                 try {
+                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                     stream.getTracks().forEach(track => track.stop());
+                 } catch (err) {
+                     // user denied or closed the prompt
+                     checkPermission(true);
+                 }
+             } else if (state === 'denied') {
+                 if (permissionHint) permissionHint.style.display = 'block';
+                 setStatus('Требуется разрешение в настройках браузера', '#FF9800');
+                 setTimeout(() => {
+                     chrome.tabs.create({ url: 'chrome://settings/content/microphone' });
+                 }, 300); // Small delay to let user see hint before navigating
+             }
+        });
+    }
+
     // Запрашиваем текущий статус при открытии попапа
     sendToBackground({ action: 'get_status' }, async (response) => {
-        if (response && response.isListening) {
+        let isActuallyListening = response && response.isListening;
+        if (isActuallyListening) {
             setRecordingState(true);
             setStatus('Идет фоновая запись... Говорите "Следующее видео".', '#4CAF50');
             stopBtn.disabled = false;
         } else {
             setRecordingState(false);
-            // Автоматический старт при открытии
-            try {
-                const perm = await navigator.permissions.query({ name: 'microphone' });
-                
-                if (perm.state === 'granted') {
-                    sendToBackground({ action: 'start_listening' });
-                    setStatus('Запуск фонового распознавания...', '#4CAF50');
-                    stopBtn.disabled = false;
-                } else if (perm.state === 'prompt') {
-                    try {
-                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                        stream.getTracks().forEach(track => track.stop()); // Освобождаем поток
-                        sendToBackground({ action: 'start_listening' });
-                        setStatus('Запуск фонового распознавания...', '#4CAF50');
-                        stopBtn.disabled = false;
-                    } catch (err) {
-                        setStatus('Доступ к микрофону отклонён. Разрешите его вручную (значок в адресной строке).', 'red');
-                    }
-                } else {
-                    setStatus('Доступ к микрофону отклонён. Разрешите его вручную (значок в адресной строке).', 'red');
-                }
-            } catch (err) {
-                console.error('Ошибка проверки разрешений:', err);
-                // Запасной план: открыть вкладку
-                chrome.tabs.create({ url: chrome.runtime.getURL('permission.html') });
-            }
-            
-            // Даже если отказано, даем возможность нажать "Запустить" и попробовать еще раз
             stopBtn.disabled = false;
         }
+        await checkPermission(!isActuallyListening);
     });
 
     // Обработчик остановки/запуска записи (тоггл)
@@ -103,29 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setRecordingState(false);
         } else {
             stopBtn.disabled = true;
-            try {
-                const perm = await navigator.permissions.query({ name: 'microphone' });
-                if (perm.state === 'granted') {
-                    sendToBackground({ action: 'start_listening' });
-                    setStatus('Запуск фонового распознавания...', '#4CAF50');
-                } else if (perm.state === 'prompt') {
-                    try {
-                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                        stream.getTracks().forEach(track => track.stop()); // Освобождаем поток
-                        sendToBackground({ action: 'start_listening' });
-                        setStatus('Запуск фонового распознавания...', '#4CAF50');
-                    } catch (err) {
-                        setStatus('Доступ к микрофону отклонён. Разрешите его вручную (значок в адресной строке).', 'red');
-                        stopBtn.disabled = false;
-                    }
-                } else {
-                    setStatus('Доступ к микрофону отклонён. Разрешите его вручную (значок в адресной строке).', 'red');
-                    stopBtn.disabled = false;
-                }
-            } catch (err) {
-                chrome.tabs.create({ url: chrome.runtime.getURL('permission.html') });
-                stopBtn.disabled = false;
-            }
+            await checkPermission(true);
         }
     });
 

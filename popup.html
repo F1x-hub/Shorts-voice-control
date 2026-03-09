@@ -33,6 +33,27 @@
             transition: background-color 0.2s;
         }
 
+        .btn-permission {
+            background-color: #4CAF50 !important;
+            font-size: 16px;
+            padding: 12px 24px;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .btn-permission:hover {
+            background-color: #45a049 !important;
+        }
+        .permission-hint {
+            font-size: 11.5px;
+            line-height: 1.4;
+            color: #666;
+            margin-top: 10px;
+            text-align: left;
+            padding: 10px;
+            background: #fff3cd;
+            border: 1px solid #ffe69c;
+            border-radius: 6px;
+        }
         .btn-start {
             background-color: #4CAF50 !important;
         }
@@ -138,8 +159,20 @@
     <h2>Голосовое управление Shorts</h2>
     <p class="info">Включите микрофон и произносите команды для управления видео (например, «следующее» или «предыдущее»).</p>
     
-    <div>
+    <div id="controls">
         <button id="stop" class="btn-stop" disabled>Остановить</button>
+    </div>
+    
+    <div id="permission-container" style="display: none;">
+        <button id="permissionBtn" class="btn-permission">🎤 Дать разрешение</button>
+        <div id="permissionHint" class="permission-hint" style="display: none;">
+            Пожалуйста:<br>
+            1. Нажмите <b>Дать разрешение</b> выше.<br>
+            2. В открывшейся вкладке найдите строку <b>youtube.com</b> или <b>*</b> (по умолчанию).<br>
+            3. Переключите микрофон на <b>Разрешить</b>.<br>
+            <br>
+            <i>После этого закройте настройки, кнопка обновится автоматически.</i>
+        </div>
     </div>
     
     <div class="toggle-container">
