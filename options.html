@@ -223,6 +223,41 @@
         </div>
     </div>
 
+    <div class="section">
+        <h3>Горячие клавиши</h3>
+        <p style="font-size: 13px; color: #666; margin-top: -10px; margin-bottom: 10px;">
+            Кликните по полю и нажмите нужное сочетание клавиш для сохранения.
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 15px;">
+            <div>
+                <label for="hotkeyPrev" style="font-size: 14px; font-weight: bold; margin-bottom: 5px; display: block;">Предыдущее видео</label>
+                <div class="input-group">
+                    <input type="text" id="hotkeyPrev" readonly placeholder="Кликните и нажмите клавиши..." style="cursor: pointer; background-color: #f5f5f5;">
+                    <button id="clearHotkeyPrev" style="background-color: #f44336;">Сбросить</button>
+                </div>
+            </div>
+            <div>
+                <label for="hotkeyNext" style="font-size: 14px; font-weight: bold; margin-bottom: 5px; display: block;">Следующее видео</label>
+                <div class="input-group">
+                    <input type="text" id="hotkeyNext" readonly placeholder="Кликните и нажмите клавиши..." style="cursor: pointer; background-color: #f5f5f5;">
+                    <button id="clearHotkeyNext" style="background-color: #f44336;">Сбросить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>Авто-пропуск Shorts</h3>
+        <p style="font-size: 13px; color: #666; margin-top: -10px; margin-bottom: 10px;">
+            Настройте момент автоматического перехода к следующему видео (когда включен тумблер в главном окне расширения).
+        </p>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <label for="autoSkipTimeOptions" style="font-size: 14px;">Перелистывать за</label>
+            <input type="number" id="autoSkipTimeOptions" min="0" max="60" step="0.5" value="0.5" style="width: 60px; padding: 6px; text-align: center; border: 1px solid #ccc; border-radius: 4px;">
+            <span style="font-size: 14px;">секунд до конца видео</span>
+        </div>
+    </div>
+
     <div class="save-container">
         <div id="saveMessage" class="save-msg">Настройки сохранены ✓</div>
     </div>

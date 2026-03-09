@@ -1,8 +1,21 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const startBtn = document.getElementById('start');
     const stopBtn = document.getElementById('stop');
     const statusDiv = document.getElementById('status');
     const autoSkipToggle = document.getElementById('autoSkipToggle');
+
+    function sendToBackground(message, callback, retryCount = 0) {
+        chrome.runtime.sendMessage(message, (response) => {
+            if (chrome.runtime.lastError) {
+                if (retryCount < 3) {
+                    setTimeout(() => sendToBackground(message, callback, retryCount + 1), 1000);
+                } else if (callback) {
+                    callback(null);
+                }
+                return;
+            }
+            if (callback) callback(response);
+        });
+    }
 
     // Предварительно загружаем состояние тогглера
     if (autoSkipToggle) {
@@ -16,8 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Кнопка Старт включена по умолчанию, чтобы дождаться клика пользователя
-    startBtn.disabled = false;
+
 
     const settingsBtn = document.getElementById('settingsBtn');
     if (settingsBtn) {
@@ -30,58 +42,106 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    let isRecording = false;
+
+    function setRecordingState(state) {
+        isRecording = state;
+        if (state) {
+            stopBtn.textContent = 'Остановить';
+            stopBtn.className = 'btn-stop';
+        } else {
+            stopBtn.textContent = 'Запустить';
+            stopBtn.className = 'btn-start';
+        }
+    }
+
     // Запрашиваем текущий статус при открытии попапа
-    chrome.runtime.sendMessage({ action: 'get_status' }, (response) => {
-        if (chrome.runtime.lastError) return;
+    sendToBackground({ action: 'get_status' }, async (response) => {
         if (response && response.isListening) {
+            setRecordingState(true);
             setStatus('Идет фоновая запись... Говорите "Следующее видео".', '#4CAF50');
-            startBtn.disabled = true;
+            stopBtn.disabled = false;
+        } else {
+            setRecordingState(false);
+            // Автоматический старт при открытии
+            try {
+                const perm = await navigator.permissions.query({ name: 'microphone' });
+                
+                if (perm.state === 'granted') {
+                    sendToBackground({ action: 'start_listening' });
+                    setStatus('Запуск фонового распознавания...', '#4CAF50');
+                    stopBtn.disabled = false;
+                } else if (perm.state === 'prompt') {
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        stream.getTracks().forEach(track => track.stop()); // Освобождаем поток
+                        sendToBackground({ action: 'start_listening' });
+                        setStatus('Запуск фонового распознавания...', '#4CAF50');
+                        stopBtn.disabled = false;
+                    } catch (err) {
+                        setStatus('Доступ к микрофону отклонён. Разрешите его вручную (значок в адресной строке).', 'red');
+                    }
+                } else {
+                    setStatus('Доступ к микрофону отклонён. Разрешите его вручную (значок в адресной строке).', 'red');
+                }
+            } catch (err) {
+                console.error('Ошибка проверки разрешений:', err);
+                // Запасной план: открыть вкладку
+                chrome.tabs.create({ url: chrome.runtime.getURL('permission.html') });
+            }
+            
+            // Даже если отказано, даем возможность нажать "Запустить" и попробовать еще раз
             stopBtn.disabled = false;
         }
     });
 
-    // Обработчик старта записи
-    startBtn.addEventListener('click', async () => {
-        try {
-            // Проверяем разрешение без активации микрофона, чтобы избежать блокировки (race condition) оборудования
-            const perm = await navigator.permissions.query({ name: 'microphone' });
-            
-            if (perm.state === 'granted') {
-                // Запускаем фоновый скрипт
-                chrome.runtime.sendMessage({ action: 'start_listening' });
-                setStatus('Запуск фонового распознавания...', '#4CAF50');
-                startBtn.disabled = true;
-                stopBtn.disabled = false;
-            } else {
-                // Если не granted (prompt или denied), перенаправляем на страницу разрешений
+    // Обработчик остановки/запуска записи (тоггл)
+    stopBtn.addEventListener('click', async () => {
+        if (isRecording) {
+            sendToBackground({ action: 'stop_listening' });
+            setStatus('Остановка записи...', '#333');
+            setRecordingState(false);
+        } else {
+            stopBtn.disabled = true;
+            try {
+                const perm = await navigator.permissions.query({ name: 'microphone' });
+                if (perm.state === 'granted') {
+                    sendToBackground({ action: 'start_listening' });
+                    setStatus('Запуск фонового распознавания...', '#4CAF50');
+                } else if (perm.state === 'prompt') {
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        stream.getTracks().forEach(track => track.stop()); // Освобождаем поток
+                        sendToBackground({ action: 'start_listening' });
+                        setStatus('Запуск фонового распознавания...', '#4CAF50');
+                    } catch (err) {
+                        setStatus('Доступ к микрофону отклонён. Разрешите его вручную (значок в адресной строке).', 'red');
+                        stopBtn.disabled = false;
+                    }
+                } else {
+                    setStatus('Доступ к микрофону отклонён. Разрешите его вручную (значок в адресной строке).', 'red');
+                    stopBtn.disabled = false;
+                }
+            } catch (err) {
                 chrome.tabs.create({ url: chrome.runtime.getURL('permission.html') });
+                stopBtn.disabled = false;
             }
-        } catch (err) {
-            console.error('Ошибка проверки разрешений:', err);
-            // Если API permissions недоступно, всё равно пробуем открыть вкладку
-            chrome.tabs.create({ url: chrome.runtime.getURL('permission.html') });
         }
-    });
-
-    // Обработчик остановки записи
-    stopBtn.addEventListener('click', () => {
-        chrome.runtime.sendMessage({ action: 'stop_listening' });
-        setStatus('Остановка записи...', '#333');
     });
 
     // Слушаем сообщения из фонового скрипта/offscreen документа
     chrome.runtime.onMessage.addListener((message) => {
         if (message.action === 'recognition_started') {
+            setRecordingState(true);
             setStatus('Идет фоновая запись... Говорите "Следующее видео".', '#4CAF50');
-            startBtn.disabled = true;
             stopBtn.disabled = false;
         } else if (message.action === 'recognition_stopped') {
+            setRecordingState(false);
             // Если статус уже красный (ошибка), не перезаписываем его на "Остановлена."
             if (statusDiv.style.color !== 'red') {
-                setStatus('Запись остановлена.', '#333');
+                setStatus('Запись остановлена (выключена).', '#333');
             }
-            startBtn.disabled = false;
-            stopBtn.disabled = true;
+            stopBtn.disabled = false;
         } else if (message.action === 'command_executed') {
             setStatus('▶ Команда: «' + message.commandName + '»', '#4CAF50');
         } else if (message.action === 'transcript_update') {
@@ -91,19 +151,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('%cПромежуточный: %c' + message.text, 'color: gray; font-style: italic;', 'color: gray');
             }
         } else if (message.action === 'recognition_error') {
+            if (message.error === 'network') {
+                return; // Игнорируем сетевую ошибку, фон переподключит
+            }
             console.error("Получена ошибка из фона:", message.error);
             let errorMessage = 'Ошибка: ' + message.error;
             if (message.error === 'not-allowed') {
                 errorMessage = 'Нет доступа к микрофону в фоне.';
-            } else if (message.error === 'network') {
-                errorMessage = 'Ошибка сети.';
             } else if (message.error === 'no-speech') {
                 // Игнорируем no-speech, так как мы будем перезапускать автоматически
                 return;
             }
+            setRecordingState(false);
             setStatus(errorMessage, 'red');
-            startBtn.disabled = false;
-            stopBtn.disabled = true;
+            stopBtn.disabled = false;
+        } else if (message.action === 'reconnecting') {
+            setStatus(`Переподключение (попытка ${message.attempt}/${message.max})...`, '#FF9800');
+        } else if (message.action === 'recognition_error_final') {
+            setRecordingState(false);
+            setStatus('Ошибка сети. Проверьте подключение и попробуйте снова.', 'red');
+            stopBtn.disabled = false;
         }
     });
 

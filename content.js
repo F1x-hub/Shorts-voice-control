@@ -48,6 +48,34 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 });
 
+// Слушаем прямые сообщения от iframe для быстрого переключения
+window.addEventListener('message', (event) => {
+    if (event.data && event.data.action === 'voice_command') {
+        const command = event.data.command;
+        const startTime = event.data.startTime || performance.now();
+        
+        if (command === 'next_video') {
+            const nextButton = document.querySelector('button[aria-label="Следующее видео"]') || 
+                               document.querySelector('.yt-spec-button-shape-next[aria-label="Следующее видео"]') ||
+                               document.querySelector('#navigation-button-down button');
+            if (nextButton) {
+                nextButton.click();
+                const timeTaken = performance.now() - startTime;
+                console.log(`[VoiceToText] Команда 'Следующее видео' распознана и выполнена за ${timeTaken.toFixed(1)} мс`);
+            }
+        } else if (command === 'prev_video') {
+            const prevButton = document.querySelector('button[aria-label="Предыдущее видео"]') ||
+                               document.querySelector('.yt-spec-button-shape-next[aria-label="Предыдущее видео"]') ||
+                               document.querySelector('#navigation-button-up button');
+            if (prevButton) {
+                prevButton.click();
+                const timeTaken = performance.now() - startTime;
+                console.log(`[VoiceToText] Команда 'Предыдущее видео' распознана и выполнена за ${timeTaken.toFixed(1)} мс`);
+            }
+        }
+    }
+});
+
 function showToast(text) {
     let toast = document.getElementById('vtt-toast');
     if (!toast) {
@@ -79,14 +107,72 @@ function showToast(text) {
 
 // --- Логика авто-пропуска Shorts ---
 let autoSkipEnabled = false;
+let autoSkipTime = 0.5;
 
-chrome.storage.local.get(['autoSkip'], (result) => {
+chrome.storage.local.get(['autoSkip', 'autoSkipTime'], (result) => {
     autoSkipEnabled = result.autoSkip || false;
+    autoSkipTime = result.autoSkipTime !== undefined ? result.autoSkipTime : 0.5;
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === 'local' && changes.autoSkip !== undefined) {
-        autoSkipEnabled = changes.autoSkip.newValue;
+    if (area === 'local') {
+        if (changes.autoSkip !== undefined) autoSkipEnabled = changes.autoSkip.newValue;
+        if (changes.autoSkipTime !== undefined) autoSkipTime = changes.autoSkipTime.newValue;
+    }
+    if (area === 'sync') {
+        if (changes.hotkeyPrev !== undefined) hotkeyPrevStr = changes.hotkeyPrev.newValue || '';
+        if (changes.hotkeyNext !== undefined) hotkeyNextStr = changes.hotkeyNext.newValue || '';
+    }
+});
+
+let hotkeyPrevStr = '';
+let hotkeyNextStr = '';
+
+chrome.storage.sync.get(['hotkeyPrev', 'hotkeyNext'], (result) => {
+    hotkeyPrevStr = result.hotkeyPrev || '';
+    hotkeyNextStr = result.hotkeyNext || '';
+});
+
+function matchesHotkey(e, hotkeyStr) {
+    if (!hotkeyStr) return false;
+    const parts = hotkeyStr.split(' + ');
+    
+    const needsCtrl = parts.includes('Ctrl');
+    const needsAlt = parts.includes('Alt');
+    const needsShift = parts.includes('Shift');
+    const needsMeta = parts.includes('Meta');
+    
+    if (e.ctrlKey !== needsCtrl) return false;
+    if (e.altKey !== needsAlt) return false;
+    if (e.shiftKey !== needsShift) return false;
+    if (e.metaKey !== needsMeta) return false;
+    
+    const keyPart = parts[parts.length - 1]; // Main key is the last part
+    if (['Ctrl', 'Alt', 'Shift', 'Meta'].includes(keyPart)) return false;
+    
+    let keyName = e.key;
+    if (keyName === ' ') keyName = 'Space';
+    if (/^[a-z]$/.test(keyName)) keyName = keyName.toUpperCase();
+    
+    return keyName === keyPart;
+}
+
+window.addEventListener('keydown', (e) => {
+    // Не перехватывать, если мы в текстовом поле
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+    
+    if (hotkeyNextStr && matchesHotkey(e, hotkeyNextStr)) {
+        e.preventDefault();
+        const nextButton = document.querySelector('button[aria-label="Следующее видео"]') || 
+                           document.querySelector('.yt-spec-button-shape-next[aria-label="Следующее видео"]') ||
+                           document.querySelector('#navigation-button-down button');
+        if (nextButton) nextButton.click();
+    } else if (hotkeyPrevStr && matchesHotkey(e, hotkeyPrevStr)) {
+        e.preventDefault();
+        const prevButton = document.querySelector('button[aria-label="Предыдущее видео"]') ||
+                           document.querySelector('.yt-spec-button-shape-next[aria-label="Предыдущее видео"]') ||
+                           document.querySelector('#navigation-button-up button');
+        if (prevButton) prevButton.click();
     }
 });
 
@@ -101,8 +187,8 @@ setInterval(() => {
         // Ищем активное видео (которое сейчас проигрывается)
         if (!video.paused && video.readyState === 4 && video.duration > 0) {
             
-            // Если до конца осталось меньше 0.5 сек
-            if (video.duration - video.currentTime < 0.5) {
+            // Если до конца осталось меньше autoSkipTime сек
+            if (video.duration - video.currentTime <= autoSkipTime) {
                 if (!video.dataset.autoSkipped) {
                     video.dataset.autoSkipped = 'true';
                     console.log('Shorts video ended, auto-skipping...');

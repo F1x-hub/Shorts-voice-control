@@ -32,19 +32,18 @@
             border-radius: 6px;
             transition: background-color 0.2s;
         }
-        #start {
-            background-color: #4CAF50;
-            color: white;
+
+        .btn-start {
+            background-color: #4CAF50 !important;
         }
-        #start:hover:not(:disabled) {
-            background-color: #45a049;
+        .btn-start:hover:not(:disabled) {
+            background-color: #45a049 !important;
         }
-        #stop {
-            background-color: #f44336;
-            color: white;
+        .btn-stop {
+            background-color: #f44336 !important;
         }
-        #stop:hover:not(:disabled) {
-            background-color: #da190b;
+        .btn-stop:hover:not(:disabled) {
+            background-color: #da190b !important;
         }
         button:disabled {
             background-color: #cccccc;
@@ -140,8 +139,7 @@
     <p class="info">Включите микрофон и произносите команды для управления видео (например, «следующее» или «предыдущее»).</p>
     
     <div>
-        <button id="start">Начать запись</button>
-        <button id="stop" disabled>Остановить</button>
+        <button id="stop" class="btn-stop" disabled>Остановить</button>
     </div>
     
     <div class="toggle-container">
@@ -152,7 +150,7 @@
         <label class="toggle-label" for="autoSkipToggle">Авто-пропуск просмотренных Shorts</label>
     </div>
     
-    <div id="status">Готов к работе. Нажмите "Начать запись".</div>
+    <div id="status">Инициализация...</div>
 
     <script src="popup.js"></script>
 </body>

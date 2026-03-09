@@ -8,6 +8,9 @@ let altNextKeywords = [];
 let currentLang = 'ru-RU';
 let currentSensitivity = 5;
 let showToast = true;
+let hotkeyPrev = '';
+let hotkeyNext = '';
+let autoSkipTime = 0.5;
 
 // Local preview variables
 let localRecognition;
@@ -81,6 +84,69 @@ document.addEventListener('DOMContentLoaded', () => {
             saveSettings();
         });
     }
+
+    // Hotkey support
+    function formatHotkey(e) {
+        e.preventDefault();
+        const keys = [];
+        if (e.ctrlKey) keys.push('Ctrl');
+        if (e.altKey) keys.push('Alt');
+        if (e.shiftKey) keys.push('Shift');
+        if (e.metaKey) keys.push('Meta');
+        
+        if (!['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) {
+            let keyName = e.key;
+            if (keyName === ' ') keyName = 'Space';
+            if (/^[a-z]$/.test(keyName)) keyName = keyName.toUpperCase();
+            keys.push(keyName);
+        }
+        
+        if (keys.length === 0) return '';
+        return keys.join(' + ');
+    }
+
+    const hkPrevInput = document.getElementById('hotkeyPrev');
+    hkPrevInput.addEventListener('keydown', (e) => {
+        const combo = formatHotkey(e);
+        if (combo && !['Ctrl', 'Alt', 'Shift', 'Meta'].includes(combo)) {
+            hotkeyPrev = combo;
+            hkPrevInput.value = combo;
+            saveSettings();
+        }
+    });
+    
+    document.getElementById('clearHotkeyPrev').addEventListener('click', () => {
+        hotkeyPrev = '';
+        hkPrevInput.value = '';
+        saveSettings();
+    });
+
+    const hkNextInput = document.getElementById('hotkeyNext');
+    hkNextInput.addEventListener('keydown', (e) => {
+        const combo = formatHotkey(e);
+        if (combo && !['Ctrl', 'Alt', 'Shift', 'Meta'].includes(combo)) {
+            hotkeyNext = combo;
+            hkNextInput.value = combo;
+            saveSettings();
+        }
+    });
+
+    document.getElementById('clearHotkeyNext').addEventListener('click', () => {
+        hotkeyNext = '';
+        hkNextInput.value = '';
+        saveSettings();
+    });
+
+    const autoSkipTimeOptions = document.getElementById('autoSkipTimeOptions');
+    if (autoSkipTimeOptions) {
+        autoSkipTimeOptions.addEventListener('change', (e) => {
+            let val = parseFloat(e.target.value);
+            if (isNaN(val) || val < 0) val = 0;
+            autoSkipTimeOptions.value = val;
+            autoSkipTime = val;
+            saveSettingsLocal();
+        });
+    }
 });
 
 function loadSettings() {
@@ -99,11 +165,22 @@ function loadSettings() {
         showToast = result.showToast !== undefined ? result.showToast : true;
         const toastToggle = document.getElementById('showToastToggle');
         if (toastToggle) toastToggle.checked = showToast;
+        
+        hotkeyPrev = result.hotkeyPrev || '';
+        hotkeyNext = result.hotkeyNext || '';
+        document.getElementById('hotkeyPrev').value = hotkeyPrev;
+        document.getElementById('hotkeyNext').value = hotkeyNext;
 
         renderPrev();
         renderNext();
         renderAltPrev();
         renderAltNext();
+    });
+
+    chrome.storage.local.get(['autoSkipTime'], (result) => {
+        autoSkipTime = result.autoSkipTime !== undefined ? result.autoSkipTime : 0.5;
+        const input = document.getElementById('autoSkipTimeOptions');
+        if (input) input.value = autoSkipTime;
     });
 }
 
@@ -180,7 +257,17 @@ function saveSettings() {
         altNextKeywords: altNextKeywords,
         language: currentLang,
         sensitivity: currentSensitivity,
-        showToast: showToast
+        showToast: showToast,
+        hotkeyPrev: hotkeyPrev,
+        hotkeyNext: hotkeyNext
+    }, () => {
+        showSaveMessage();
+    });
+}
+
+function saveSettingsLocal() {
+    chrome.storage.local.set({
+        autoSkipTime: autoSkipTime
     }, () => {
         showSaveMessage();
     });

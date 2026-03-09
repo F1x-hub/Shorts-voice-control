@@ -1,4 +1,5 @@
 let recognition;
+let isRecognizing = false;
 const DEFAULT_PREV = ["назад", "предыдущее", "прошлое", "back", "previous", "prev"];
 const DEFAULT_NEXT = ["вперёд", "следующее", "дальше", "next", "forward"];
 
@@ -66,14 +67,22 @@ function levenshtein(a, b) {
 }
 
 const checkKeyword = (text, keywords, altKeywords = []) => {
-    const tokens = text.split(/\s+/);
     const allKeywords = [...keywords, ...altKeywords];
     
+    // Fast O(N) exact match
     for (const keyword of allKeywords) {
-        // Strict boundary matching
+        if (text === keyword.toLowerCase()) return keyword;
+    }
+
+    // Strict boundary matching
+    for (const keyword of allKeywords) {
         if (new RegExp(`(?:^|\\s)${keyword}(?:\\s|$)`, 'i').test(text)) return keyword;
-        
-        // Fuzzy match with 80% similarity threshold
+    }
+
+    const tokens = text.split(/\s+/);
+    
+    // Fuzzy match with 80% similarity threshold
+    for (const keyword of allKeywords) {
         const matched = tokens.some(token => {
             const maxLen = Math.max(token.length, keyword.length);
             if (maxLen === 0) return false;
@@ -107,6 +116,11 @@ async function startRecognition() {
     recognition.lang = currentLang;
     recognition.continuous = true;
     recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+        isRecognizing = true;
+    };
 
     recognition.onresult = (event) => {
         if (isDebouncing) return;
@@ -147,49 +161,64 @@ async function startRecognition() {
             if (nextMatch) {
                 const commandName = 'Следующее видео';
                 console.log("Найдена команда:", commandName);
-                chrome.runtime.sendMessage({ action: 'voice_command', command: 'next_video' }).catch(() => {});
+                
+                const startTime = performance.now();
+                window.parent.postMessage({ action: 'voice_command', command: 'next_video', startTime }, '*');
+                
                 chrome.runtime.sendMessage({ action: 'command_executed', commandName: commandName }).catch(() => {});
                 if (showToastEnabled) {
                     chrome.runtime.sendMessage({ action: 'show_toast', message: '▶ Команда: «' + commandName + '»' }).catch(() => {});
                 }
                 
-                // Дебоунсинг вместо перезапуска API
-                lastProcessedResultIndex = event.results.length;
+                // Быстрый сброс вместо дебоунса
+                lastProcessedResultIndex = 0;
                 isDebouncing = true;
-                setTimeout(() => { isDebouncing = false; }, 2000);
+                if (recognition) recognition.abort();
+                setTimeout(() => { isDebouncing = false; }, 500);
             } else if (prevMatch) {
                 const commandName = 'Предыдущее видео';
                 console.log("Найдена команда:", commandName);
-                chrome.runtime.sendMessage({ action: 'voice_command', command: 'prev_video' }).catch(() => {});
+                
+                const startTime = performance.now();
+                window.parent.postMessage({ action: 'voice_command', command: 'prev_video', startTime }, '*');
+                
                 chrome.runtime.sendMessage({ action: 'command_executed', commandName: commandName }).catch(() => {});
                 if (showToastEnabled) {
                     chrome.runtime.sendMessage({ action: 'show_toast', message: '▶ Команда: «' + commandName + '»' }).catch(() => {});
                 }
                 
-                // Дебоунсинг вместо перезапуска API
-                lastProcessedResultIndex = event.results.length;
+                // Быстрый сброс вместо дебоунса
+                lastProcessedResultIndex = 0;
                 isDebouncing = true;
-                setTimeout(() => { isDebouncing = false; }, 2000);
+                if (recognition) recognition.abort();
+                setTimeout(() => { isDebouncing = false; }, 500);
             }
         }
     };
 
     recognition.onerror = (event) => {
         console.error('Ошибка распознавания:', event.error);
+        isRecognizing = false;
         chrome.runtime.sendMessage({ action: 'recognition_error', error: event.error }).catch(() => {});
-        if (event.error === 'not-allowed') {
+        if (event.error === 'not-allowed' || event.error === 'network') {
             stopRecognition();
         }
     };
 
     recognition.onend = () => {
+        isRecognizing = false;
         console.log('Распознавание завершено. Перезапуск...');
         // Перезапускаем если не было ошибки и объект recognition существует
         if (recognition) {
-            try {
-                recognition.start();
-            } catch(e) {
-                console.error(e);
+            const restart = () => {
+                if (recognition && !isRecognizing) {
+                    try { recognition.start(); } catch(e) { console.error(e); }
+                }
+            };
+            if (isDebouncing) {
+                setTimeout(restart, 500);
+            } else {
+                restart();
             }
         }
     };
@@ -223,11 +252,13 @@ function stopRecognition() {
         // Убираем обработчики перед остановкой, чтобы избежать двойных срабатываний
         // от оставшихся промежуточных или финальных результатов при вызове stop(),
         // а также попыток перезапуститься через onend.
+        recognition.onstart = null;
         recognition.onend = null;
         recognition.onresult = null;
         recognition.onerror = null;
         recognition.stop();
         recognition = null;
+        isRecognizing = false;
         chrome.runtime.sendMessage({ action: 'recognition_stopped' }).catch(() => {});
     }
     stopHeartbeat();
