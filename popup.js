@@ -101,20 +101,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (permissionBtn) {
         permissionBtn.addEventListener('click', async () => {
              const state = microphonePermissionStatus ? microphonePermissionStatus.state : 'prompt';
+             console.log('Permission button clicked, current state:', state);
+             
              if (state === 'prompt') {
-                 try {
-                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                     stream.getTracks().forEach(track => track.stop());
-                 } catch (err) {
-                     // user denied or closed the prompt
-                     checkPermission(true);
-                 }
+                 // Open dedicated permission page instead of calling getUserMedia in popup
+                 chrome.tabs.create({ url: chrome.runtime.getURL('permission.html') });
              } else if (state === 'denied') {
                  if (permissionHint) permissionHint.style.display = 'block';
                  setStatus('Требуется разрешение в настройках браузера', '#FF9800');
                  setTimeout(() => {
                      chrome.tabs.create({ url: 'chrome://settings/content/microphone' });
-                 }, 300); // Small delay to let user see hint before navigating
+                 }, 400); // Increased delay slightly
+             } else if (state === 'granted') {
+                 // Fallback if status hasn't updated yet
+                 handlePermissionState('granted', true);
              }
         });
     }
