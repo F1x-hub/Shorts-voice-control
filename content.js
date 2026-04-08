@@ -108,10 +108,16 @@ function showToast(text) {
 // --- Логика авто-пропуска Shorts ---
 let autoSkipEnabled = false;
 let autoSkipTime = 0.5;
+let autoPlaylistAdvanceEnabled = false;
+let lastPlaylistAdvanceAt = 0;
 
 chrome.storage.local.get(['autoSkip', 'autoSkipTime'], (result) => {
     autoSkipEnabled = result.autoSkip || false;
     autoSkipTime = result.autoSkipTime !== undefined ? result.autoSkipTime : 0.5;
+});
+
+chrome.storage.sync.get(['autoPlaylistAdvance'], (result) => {
+    autoPlaylistAdvanceEnabled = result.autoPlaylistAdvance === true;
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {
@@ -122,6 +128,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'sync') {
         if (changes.hotkeyPrev !== undefined) hotkeyPrevStr = changes.hotkeyPrev.newValue || '';
         if (changes.hotkeyNext !== undefined) hotkeyNextStr = changes.hotkeyNext.newValue || '';
+        if (changes.autoPlaylistAdvance !== undefined) autoPlaylistAdvanceEnabled = changes.autoPlaylistAdvance.newValue === true;
     }
 });
 
@@ -212,3 +219,36 @@ setInterval(() => {
         }
     }
 }, 300);
+
+function isPlaylistWatchPage() {
+    if (!window.location.pathname.startsWith('/watch')) return false;
+
+    const params = new URLSearchParams(window.location.search);
+    return params.has('list') && params.has('index');
+}
+
+function getNextPlaylistButton() {
+    return document.querySelector('button[aria-label="Следующее видео"]') ||
+        document.querySelector('.yt-spec-button-shape-next[aria-label="Следующее видео"]') ||
+        document.querySelector('a.ytp-next-button') ||
+        document.querySelector('.ytp-next-button') ||
+        document.querySelector('ytd-playlist-panel-renderer a[aria-label*="Следующее"]');
+}
+
+document.addEventListener('ended', (event) => {
+    if (!autoPlaylistAdvanceEnabled) return;
+    if (!isPlaylistWatchPage()) return;
+    if (!(event.target instanceof HTMLVideoElement)) return;
+
+    const now = Date.now();
+    if (now - lastPlaylistAdvanceAt < 2000) return;
+
+    const nextButton = getNextPlaylistButton();
+    if (!nextButton) return;
+
+    lastPlaylistAdvanceAt = now;
+    console.log('Playlist video ended, moving to the next item...');
+    setTimeout(() => {
+        nextButton.click();
+    }, 250);
+}, true);

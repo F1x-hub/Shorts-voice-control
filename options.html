@@ -124,10 +124,10 @@
             transition: .4s;
             border-radius: 50%;
         }
-        #showToastToggle:checked + .toast-toggle-slider {
+        input[type="checkbox"]:checked + .toast-toggle-slider {
             background-color: #4CAF50;
         }
-        #showToastToggle:checked + .toast-toggle-slider:before {
+        input[type="checkbox"]:checked + .toast-toggle-slider:before {
             transform: translateX(16px);
         }
     </style>
@@ -182,6 +182,20 @@
         </div>
         <p style="font-size: 12px; color: #777; margin-top: 8px; margin-bottom: 0;">
             * При включении на экране YouTube будет появляться уведомление о выполненной команде.
+        </p>
+    </div>
+
+    <div class="section">
+        <h3>Плейлисты YouTube</h3>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <label style="position: relative; display: inline-block; width: 36px; height: 20px; flex-shrink: 0;">
+                <input type="checkbox" id="autoPlaylistAdvanceToggle" style="opacity: 0; width: 0; height: 0;">
+                <span class="toast-toggle-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px;"></span>
+            </label>
+            <label for="autoPlaylistAdvanceToggle" style="font-size: 14px; cursor: pointer; user-select: none;">Автоматически запускать следующий ролик в плейлисте</label>
+        </div>
+        <p style="font-size: 12px; color: #777; margin-top: 8px; margin-bottom: 0;">
+            * Если открыто видео из плейлиста, после завершения текущего ролика расширение попробует перейти к следующему элементу списка.
         </p>
     </div>
 

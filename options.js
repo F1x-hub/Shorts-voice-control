@@ -11,6 +11,7 @@ let showToast = true;
 let hotkeyPrev = '';
 let hotkeyNext = '';
 let autoSkipTime = 0.5;
+let autoPlaylistAdvance = false;
 
 // Local preview variables
 let localRecognition;
@@ -85,6 +86,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const autoPlaylistAdvanceToggle = document.getElementById('autoPlaylistAdvanceToggle');
+    if (autoPlaylistAdvanceToggle) {
+        autoPlaylistAdvanceToggle.addEventListener('change', () => {
+            autoPlaylistAdvance = autoPlaylistAdvanceToggle.checked;
+            saveSettings();
+        });
+    }
+
     // Hotkey support
     function formatHotkey(e) {
         e.preventDefault();
@@ -150,7 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function loadSettings() {
-    chrome.storage.sync.get(['prevKeywords', 'nextKeywords', 'altPrevKeywords', 'altNextKeywords', 'language', 'sensitivity', 'showToast'], (result) => {
+    chrome.storage.sync.get(['prevKeywords', 'nextKeywords', 'altPrevKeywords', 'altNextKeywords', 'language', 'sensitivity', 'showToast', 'autoPlaylistAdvance', 'hotkeyPrev', 'hotkeyNext'], (result) => {
         prevKeywords = result.prevKeywords || [...DEFAULT_PREV];
         nextKeywords = result.nextKeywords || [...DEFAULT_NEXT];
         altPrevKeywords = result.altPrevKeywords || [];
@@ -165,6 +174,10 @@ function loadSettings() {
         showToast = result.showToast !== undefined ? result.showToast : true;
         const toastToggle = document.getElementById('showToastToggle');
         if (toastToggle) toastToggle.checked = showToast;
+
+        autoPlaylistAdvance = result.autoPlaylistAdvance === true;
+        const autoPlaylistAdvanceToggle = document.getElementById('autoPlaylistAdvanceToggle');
+        if (autoPlaylistAdvanceToggle) autoPlaylistAdvanceToggle.checked = autoPlaylistAdvance;
         
         hotkeyPrev = result.hotkeyPrev || '';
         hotkeyNext = result.hotkeyNext || '';
@@ -258,6 +271,7 @@ function saveSettings() {
         language: currentLang,
         sensitivity: currentSensitivity,
         showToast: showToast,
+        autoPlaylistAdvance: autoPlaylistAdvance,
         hotkeyPrev: hotkeyPrev,
         hotkeyNext: hotkeyNext
     }, () => {
