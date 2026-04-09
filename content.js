@@ -252,3 +252,67 @@ document.addEventListener('ended', (event) => {
         nextButton.click();
     }, 250);
 }, true);
+
+// --- Логика удержания списка воспроизведения (Playlist Retention) ---
+let savedPlaylistList = null;
+let savedPlaylistIndex = null;
+
+function checkAndRestorePlaylist() {
+    if (!window.location.pathname.startsWith('/watch')) {
+        return;
+    }
+
+    const currentUrl = new URL(window.location.href);
+    const searchParams = currentUrl.searchParams;
+
+    const currentList = searchParams.get('list');
+    const currentIndex = searchParams.get('index');
+
+    if (currentList) {
+        // Если параметры есть, обновляем наши сохраненные значения
+        savedPlaylistList = currentList;
+        if (currentIndex) {
+            savedPlaylistIndex = currentIndex;
+        }
+    } else if (savedPlaylistList) {
+        // Если нас "выкинуло" (параметра list нет, но он сохранен) - восстанавливаем
+        searchParams.set('list', savedPlaylistList);
+        if (savedPlaylistIndex) {
+            searchParams.set('index', savedPlaylistIndex);
+        }
+
+        const newUrl = currentUrl.pathname + currentUrl.search + currentUrl.hash;
+        console.log(`[VoiceToText] Нас выкинуло из плейлиста. Жестко возвращаем обратно: ${newUrl}`);
+        
+        // ВАЖНО: history.replaceState только меняет текст в строке, но не загружает интерфейс плейлиста.
+        // Чтобы появилось боковое меню и функционал плейлиста, нужно заставить браузер/YouTube перейти по этой ссылке.
+        window.location.replace(newUrl);
+    }
+}
+
+// Перехватываем клики по любым видео (рекомендации, автовоспроизведение в плеере)
+// и заранее подшиваем наш плейлист прямиком в href ДО ТОГО, как начался переход
+document.addEventListener('click', (e) => {
+    // Ищем тег <a> на который кликнули
+    const a = e.target.closest('a');
+    if (a && a.href && a.href.includes('/watch') && savedPlaylistList) {
+        try {
+            const url = new URL(a.href);
+            if (!url.searchParams.has('list')) { // если в ссылке нет плейлиста
+                url.searchParams.set('list', savedPlaylistList);
+                if (savedPlaylistIndex) {
+                    url.searchParams.set('index', savedPlaylistIndex);
+                }
+                a.href = url.href; // подменяем ссылку в реальном времени
+                
+                console.log(`[VoiceToText] Перехвачен клик/переход, добавлен плейлист в ссылку: list=${savedPlaylistList}`);
+            }
+        } catch (err) {}
+    }
+}, true); // Захватываем событие как можно раньше (useCapture: true)
+
+// Слушаем события SPA-навигации YouTube
+document.addEventListener('yt-navigate-finish', checkAndRestorePlaylist);
+
+// Резервный интервал
+setInterval(checkAndRestorePlaylist, 1000);
